@@ -171,6 +171,7 @@ func (partition *DataPartition) checkDiskError(clusterID, leaderAddr string) (di
 	}
 
 	for addr, diskPath := range diskErrorAddrs {
+		log.LogWarnf("yqy checkDiskError addr[%s], diskPath[%s]",addr, diskPath)
 		msg := fmt.Sprintf("action[%v],clusterID[%v],partitionID:%v  On :%v  Disk Error,So Remove it From RocksDBHost",
 			checkDataPartitionDiskErr, clusterID, partition.PartitionID, addr)
 		msg = msg + fmt.Sprintf(" decommissionDiskURL is http://%v/disk/decommission?addr=%v&disk=%v", leaderAddr, addr, diskPath)

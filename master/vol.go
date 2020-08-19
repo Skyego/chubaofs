@@ -238,8 +238,10 @@ func (vol *Vol) checkDataPartitions(c *Cluster) (cnt int) {
 		}
 		diskErrorAddrs := dp.checkDiskError(c.Name, c.leaderInfo.addr)
 		if len(diskErrorAddrs) != 0 {
+			log.LogWarnf("yqy checkDataPartitions diskErrorAddrs[%v]",diskErrorAddrs)
 			for addr := range diskErrorAddrs {
 				badDp := &BadDiskDataPartition{dp: dp, diskErrAddr: addr}
+				log.LogWarnf("yqy checkDataPartitions badDp[%s,%d]",addr,dp.PartitionID)
 				select {
 				case c.toBeDecommissionDpChan <- badDp:
 				default:
