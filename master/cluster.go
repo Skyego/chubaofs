@@ -55,6 +55,7 @@ type Cluster struct {
 	MasterSecretKey           []byte
 	lastMasterZoneForDataNode string
 	lastMasterZoneForMetaNode string
+	toBeDecommissionDpChan    chan *BadDiskDataPartition
 }
 
 func newCluster(name string, leaderInfo *LeaderInfo, fsm *MetadataFsm, partition raftstore.Partition, cfg *clusterConfig) (c *Cluster) {
@@ -72,6 +73,7 @@ func newCluster(name string, leaderInfo *LeaderInfo, fsm *MetadataFsm, partition
 	c.fsm = fsm
 	c.partition = partition
 	c.idAlloc = newIDAllocator(c.fsm.store, c.partition)
+	c.toBeDecommissionDpChan = make(chan *BadDiskDataPartition, defaultDecommissionChannelBufferCapacity)
 	return
 }
 
@@ -166,6 +168,39 @@ func (c *Cluster) checkDataPartitions() {
 		vol.dataPartitions.updateResponseCache(true, 0)
 		msg := fmt.Sprintf("action[checkDataPartitions],vol[%v] can readWrite partitions:%v  ", vol.Name, vol.dataPartitions.readableAndWritableCnt)
 		log.LogInfo(msg)
+	}
+}
+
+// decommission data partitions from toBeDecommissionDpChan which is dps that located on error disk
+func (c *Cluster) autoDecommissionDataPartitions() (badDpInfos []string, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			log.LogWarnf("autoDecommissionDataPartitions occurred panic,err[%v]", r)
+			WarnBySpecialKey(fmt.Sprintf("%v_%v_scheduling_job_panic", c.Name, ModuleName),
+				"autoDecommissionDataPartitions occurred panic")
+			err = errors.NewErrorf("autoDecommissionDataPartitions occurred panic,err[%v]", r)
+		}
+	}()
+	var badDp *BadDiskDataPartition
+	badDpInfos = make([]string, 0)
+	for {
+		if c.DisableAutoAllocate {
+			return
+		}
+		select {
+		case badDp = <-c.toBeDecommissionDpChan:
+			err = c.decommissionDataPartition(badDp.diskErrAddr, badDp.dp, dataPartitionsAutoOfflineErr)
+			if err != nil {
+				err = errors.NewErrorf("dataPartitionOffline diskErrAddr[%s],VolName[%s],PartitionID[%d],err[%v]",
+					badDp.diskErrAddr, badDp.dp.VolName, badDp.dp.PartitionID, err)
+				log.LogError(errors.Stack(err))
+				return
+			}
+			msg := fmt.Sprintf("addr[%s],dp[%d]", badDp.diskErrAddr, badDp.dp.PartitionID)
+			badDpInfos = append(badDpInfos, msg)
+		default:
+			return
+		}
 	}
 }
 

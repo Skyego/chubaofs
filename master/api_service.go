@@ -502,6 +502,21 @@ func (m *Server) decommissionDataPartition(w http.ResponseWriter, r *http.Reques
 	sendOkReply(w, r, newSuccessHTTPReply(rstMsg))
 }
 
+// Decommission data partition which locates on bad disk.
+// When it has been called,data partition which locates on bad disk will be decommission.
+func (m *Server) autoDecommissionDataPartitions(w http.ResponseWriter, r *http.Request) {
+	var (
+		err        error
+		badDpInfos []string
+	)
+	if badDpInfos, err = m.cluster.autoDecommissionDataPartitions(); err != nil {
+		sendErrReply(w, r, newErrHTTPReply(err))
+		return
+	}
+	log.LogInfof(proto.AdminAutoDecommissionDataPartition+" badDpInfos[%v] success", badDpInfos)
+	sendOkReply(w, r, newSuccessHTTPReply(badDpInfos))
+}
+
 func (m *Server) diagnoseDataPartition(w http.ResponseWriter, r *http.Request) {
 	var (
 		err               error

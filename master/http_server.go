@@ -190,6 +190,9 @@ func (m *Server) registerAPIRoutes(router *mux.Router) {
 		Path(proto.AdminDecommissionDataPartition).
 		HandlerFunc(m.decommissionDataPartition)
 	router.NewRoute().Methods(http.MethodGet, http.MethodPost).
+		Path(proto.AdminAutoDecommissionDataPartition).
+		HandlerFunc(m.autoDecommissionDataPartitions)
+	router.NewRoute().Methods(http.MethodGet, http.MethodPost).
 		Path(proto.AdminDiagnoseDataPartition).
 		HandlerFunc(m.diagnoseDataPartition)
 	router.NewRoute().Methods(http.MethodGet).
