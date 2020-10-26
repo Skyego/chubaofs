@@ -38,5 +38,6 @@ func NewRootCmd() *cobra.Command {
 	c.PersistentFlags().StringVarP(&InodesFile, "inode-list", "i", "", "inode list file")
 	c.PersistentFlags().StringVarP(&DensFile, "dentry-list", "d", "", "dentry list file")
 	c.PersistentFlags().StringVarP(&MetaPort, "mport", "", "", "prof port of metanode")
+	c.PersistentFlags().StringVarP(&VolsFile, "Vols-list", "vf", "", "vol list file")
 	return c
 }

@@ -15,6 +15,7 @@
 package cmd
 
 import (
+	"bufio"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -82,7 +83,7 @@ func newCheckBothCmd() *cobra.Command {
 		Use:   "both",
 		Short: "check and verify both inode and dentry",
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := Check(InodeCheckOpt | DentryCheckOpt); err != nil {
+			if err := CheckVolFile(InodeCheckOpt | DentryCheckOpt); err != nil {
 				fmt.Println(err)
 			}
 		},
@@ -141,6 +142,82 @@ func Check(chkopt int) (err error) {
 		}
 		defer dfile.Close()
 	}
+
+	/*
+	 * Perform analysis
+	 */
+	imap, dlist, err := analyze(ifile, dfile)
+	if err != nil {
+		return
+	}
+
+	if chkopt&InodeCheckOpt != 0 {
+		if err = dumpObsoleteInode(imap, fmt.Sprintf("%s/%s", dirPath, obsoleteInodeDumpFileName)); err != nil {
+			return
+		}
+	}
+	if chkopt&DentryCheckOpt != 0 {
+		if err = dumpObsoleteDentry(dlist, fmt.Sprintf("%s/%s", dirPath, obsoleteDentryDumpFileName)); err != nil {
+			return
+		}
+	}
+	return
+}
+
+func CheckVolFile(chkopt int) (err error) {
+
+	fd, err := os.Open(VolsFile)
+	if err != nil {
+		fmt.Printf("Error: %s\n", err)
+		return
+	}
+	defer fd.Close()
+
+	br := bufio.NewReader(fd)
+	for {
+		a, _, c := br.ReadLine()
+		if c == io.EOF {
+			break
+		}
+		err = Check2(chkopt, string(a))
+	}
+	return
+}
+
+func Check2(chkopt int, readVolName string) (err error) {
+
+	if readVolName == "" || (MasterAddr == "") || VolsFile == "" {
+		err = fmt.Errorf("Lack of mandatory args: master(%v) vol(%v)", MasterAddr, readVolName)
+		return
+	}
+
+	/*
+	 * Record all the inodes and dentries retrieved from metanode
+	 */
+	var (
+		ifile *os.File
+		dfile *os.File
+	)
+
+	dirPath := fmt.Sprintf("_export_%s", readVolName)
+	if err = os.MkdirAll(dirPath, 0666); err != nil {
+		return
+	}
+
+	if ifile, err = os.Create(fmt.Sprintf("%s/%s", dirPath, inodeDumpFileName)); err != nil {
+		return
+	}
+	defer ifile.Close()
+	if dfile, err = os.Create(fmt.Sprintf("%s/%s", dirPath, dentryDumpFileName)); err != nil {
+		return
+	}
+	defer dfile.Close()
+	if err = importRawDataFromRemote(ifile, dfile, chkopt); err != nil {
+		return
+	}
+	// go back to the beginning of the files
+	ifile.Seek(0, 0)
+	dfile.Seek(0, 0)
 
 	/*
 	 * Perform analysis
