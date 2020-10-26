@@ -172,14 +172,14 @@ func CheckVolFile(chkopt int) (err error) {
 		return
 	}
 	defer fd.Close()
-
+	fmt.Printf("vols:\n")
 	br := bufio.NewReader(fd)
 	for {
 		a, _, c := br.ReadLine()
 		if c == io.EOF {
 			break
 		}
-		fmt.Printf("a: %s\n", string(a))
+		fmt.Printf("%s\n", string(a))
 		err = Check2(chkopt, string(a))
 	}
 	return
@@ -213,7 +213,7 @@ func Check2(chkopt int, readVolName string) (err error) {
 		return
 	}
 	defer dfile.Close()
-	if err = importRawDataFromRemote(ifile, dfile, chkopt); err != nil {
+	if err = importRawDataFromRemote2(ifile, dfile, chkopt, readVolName); err != nil {
 		return
 	}
 	// go back to the beginning of the files
@@ -246,6 +246,53 @@ func importRawDataFromRemote(ifile, dfile *os.File, opt int) error {
 	 * Get all the meta partitions info
 	 */
 	mps, err := getMetaPartitions(MasterAddr, VolName)
+	if err != nil {
+		return err
+	}
+
+	/*
+	 * Note that if we are about to clean obsolete inodes,
+	 * we should get all inodes before geting all dentries.
+	 */
+	if opt&InodeCheckOpt != 0 {
+		for _, mp := range mps {
+			cmdline := fmt.Sprintf("http://%s:%s/getAllInodes?pid=%d", strings.Split(mp.LeaderAddr, ":")[0], MetaPort, mp.PartitionID)
+			if err := exportToFile(ifile, cmdline); err != nil {
+				return err
+			}
+		}
+
+		for _, mp := range mps {
+			cmdline := fmt.Sprintf("http://%s:%s/getAllDentry?pid=%d", strings.Split(mp.LeaderAddr, ":")[0], MetaPort, mp.PartitionID)
+			if err = exportToFile(dfile, cmdline); err != nil {
+				return err
+			}
+		}
+	} else if opt&DentryCheckOpt != 0 {
+		for _, mp := range mps {
+			cmdline := fmt.Sprintf("http://%s:%s/getAllDentry?pid=%d", strings.Split(mp.LeaderAddr, ":")[0], MetaPort, mp.PartitionID)
+			if err = exportToFile(dfile, cmdline); err != nil {
+				return err
+			}
+		}
+
+		for _, mp := range mps {
+			cmdline := fmt.Sprintf("http://%s:%s/getAllInodes?pid=%d", strings.Split(mp.LeaderAddr, ":")[0], MetaPort, mp.PartitionID)
+			if err := exportToFile(ifile, cmdline); err != nil {
+				return err
+			}
+		}
+	} else {
+		return fmt.Errorf("Invalid opt: %v", opt)
+	}
+	return nil
+}
+
+func importRawDataFromRemote2(ifile, dfile *os.File, opt int, readVolName string) error {
+	/*
+	 * Get all the meta partitions info
+	 */
+	mps, err := getMetaPartitions(MasterAddr, readVolName)
 	if err != nil {
 		return err
 	}
