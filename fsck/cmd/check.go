@@ -179,6 +179,7 @@ func CheckVolFile(chkopt int) (err error) {
 		if c == io.EOF {
 			break
 		}
+		fmt.Printf("a: %s\n", string(a))
 		err = Check2(chkopt, string(a))
 	}
 	return
