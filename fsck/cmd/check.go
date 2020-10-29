@@ -18,13 +18,14 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
+	"github.com/spf13/cobra"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
 	"strings"
-
-	"github.com/spf13/cobra"
+	"sync"
+	"time"
 
 	"github.com/chubaofs/chubaofs/proto"
 )
@@ -174,19 +175,47 @@ func CheckVolFile(chkopt int) (err error) {
 	defer fd.Close()
 	fmt.Printf("vols:\n")
 	br := bufio.NewReader(fd)
+	resultChan := make(chan []byte, 1000)
+	go func() {
+		for {
+			var buf []byte
+			select {
+			case buf = <- resultChan:
+				fmt.Println(string(buf))
+			default:
+				time.Sleep(1*time.Second)
+				continue
+			}
+			time.Sleep(1*time.Second)
+		}
+	}()
+	var wg sync.WaitGroup
+	max := 10
+	count := max
 	for {
 		a, _, c := br.ReadLine()
 		if c == io.EOF {
 			break
 		}
-		fmt.Printf("%s\n", string(a))
-		err = Check2(chkopt, string(a))
+		//fmt.Printf("%s\n", string(a))
+		wg.Add(1)
+		count --
+		go func() {
+			defer wg.Done()
+			var resultBytes []byte
+			err, resultBytes = Check2(chkopt, string(a))
+			resultChan<-resultBytes
+		}()
+		if count <= 0 {
+			wg.Wait()
+			count = max
+		}
 	}
+	wg.Wait()
 	return
 }
 
-func Check2(chkopt int, readVolName string) (err error) {
-
+func Check2(chkopt int, readVolName string) (err error, resultBytes []byte) {
 	if readVolName == "" || (MasterAddr == "") || VolsFile == "" {
 		err = fmt.Errorf("Lack of mandatory args: master(%v) vol(%v)", MasterAddr, readVolName)
 		return
@@ -229,7 +258,7 @@ func Check2(chkopt int, readVolName string) (err error) {
 	}
 
 	if chkopt&InodeCheckOpt != 0 {
-		if err = dumpObsoleteInode(imap, fmt.Sprintf("%s/%s", dirPath, obsoleteInodeDumpFileName)); err != nil {
+		if err, resultBytes = dumpObsoleteInode2(imap, fmt.Sprintf("%s/%s", dirPath, obsoleteInodeDumpFileName), readVolName); err != nil {
 			return
 		}
 	}
@@ -406,6 +435,44 @@ func followPath(imap map[uint64]*Inode, inode *Inode) {
 		den.Valid = true
 		followPath(imap, childInode)
 	}
+}
+
+func dumpObsoleteInode2(imap map[uint64]*Inode, name, readVolName string) (err error, bytes []byte) {
+	var (
+		obsoleteTotalFileSize uint64
+		totalFileSize         uint64
+		safeCleanSize         uint64
+		fp                    *os.File
+	)
+
+	fp, err = os.Create(name)
+	if err != nil {
+		return
+	}
+	defer fp.Close()
+
+	for _, inode := range imap {
+		if !inode.Valid {
+			if _, err = fp.WriteString(inode.String() + "\n"); err != nil {
+				return
+			}
+			obsoleteTotalFileSize += inode.Size
+			if inode.NLink == 0 {
+				safeCleanSize += inode.Size
+			}
+		}
+		totalFileSize += inode.Size
+	}
+	type VolResult struct {
+		VolName               string
+		TotalFileSize         uint64
+		ObsoleteTotalFileSize uint64
+		SafeCleanSize         uint64
+	}
+	result := VolResult{VolName: readVolName, TotalFileSize: totalFileSize, ObsoleteTotalFileSize: obsoleteTotalFileSize, SafeCleanSize: safeCleanSize}
+	bytes, err = json.Marshal(result)
+	//resultStr = fmt.Sprintf("Total File Size: %v\nObselete Total File Size: %v\nNLink Zero Total File Size: %v\n", totalFileSize, obsoleteTotalFileSize, safeCleanSize)
+	return
 }
 
 func dumpObsoleteInode(imap map[uint64]*Inode, name string) error {
