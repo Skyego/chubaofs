@@ -186,7 +186,6 @@ func CheckVolFile(chkopt int) (err error) {
 				time.Sleep(1*time.Second)
 				continue
 			}
-			time.Sleep(1*time.Second)
 		}
 	}()
 	var wg sync.WaitGroup
@@ -212,6 +211,7 @@ func CheckVolFile(chkopt int) (err error) {
 		}
 	}
 	wg.Wait()
+	time.Sleep(15*time.Second)
 	return
 }
 
