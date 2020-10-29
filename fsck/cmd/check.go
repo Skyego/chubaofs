@@ -173,14 +173,20 @@ func CheckVolFile(chkopt int) (err error) {
 		return
 	}
 	defer fd.Close()
-	fmt.Printf("vols:\n")
+	fmt.Printf("{\"Keys\": [")
 	br := bufio.NewReader(fd)
 	resultChan := make(chan []byte, 1000)
 	go func() {
+		var flag = false //","
 		for {
 			var buf []byte
 			select {
 			case buf = <- resultChan:
+				if flag {
+					fmt.Println(",")
+				} else {
+					flag = true
+				}
 				fmt.Println(string(buf))
 			default:
 				time.Sleep(1*time.Second)
@@ -189,14 +195,13 @@ func CheckVolFile(chkopt int) (err error) {
 		}
 	}()
 	var wg sync.WaitGroup
-	max := 10
+	max := 20
 	count := max
 	for {
 		a, _, c := br.ReadLine()
 		if c == io.EOF {
 			break
 		}
-		//fmt.Printf("%s\n", string(a))
 		wg.Add(1)
 		count --
 		go func() {
@@ -211,7 +216,8 @@ func CheckVolFile(chkopt int) (err error) {
 		}
 	}
 	wg.Wait()
-	time.Sleep(15*time.Second)
+	time.Sleep(20*time.Second)
+	fmt.Printf("]}")
 	return
 }
 
