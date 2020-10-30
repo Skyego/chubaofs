@@ -196,30 +196,18 @@ func CheckVolFile(chkopt int) (err error) {
 		}
 	}()
 	var wg sync.WaitGroup
-	max := VolMaxBath
-	if max <= 0 {
-		max = 20
-	} else if max > 100 {
-		max = 100
-	}
-	count := max
 	for {
 		a, _, c := br.ReadLine()
 		if c == io.EOF {
 			break
 		}
 		wg.Add(1)
-		count --
 		go func() {
 			defer wg.Done()
 			var resultBytes []byte
 			err, resultBytes = Check2(chkopt, string(a))
 			resultChan<-resultBytes
 		}()
-		if count <= 0 {
-			wg.Wait()
-			count = max
-		}
 	}
 	wg.Wait()
 	time.Sleep(20*time.Second)
