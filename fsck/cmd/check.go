@@ -176,6 +176,7 @@ func CheckVolFile(chkopt int) (err error) {
 	fmt.Printf("{\"Keys\": [")
 	br := bufio.NewReader(fd)
 	resultChan := make(chan []byte, 1000)
+	defer close(resultChan)
 	go func() {
 		var flag = false //","
 		for {
@@ -195,7 +196,12 @@ func CheckVolFile(chkopt int) (err error) {
 		}
 	}()
 	var wg sync.WaitGroup
-	max := 20
+	max := VolMaxBath
+	if max <= 0 {
+		max = 20
+	} else if max > 100 {
+		max = 100
+	}
 	count := max
 	for {
 		a, _, c := br.ReadLine()

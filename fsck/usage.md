@@ -1,6 +1,10 @@
 ### Command examples
 
 ```example bash
+使用方式：
+volfile：每一行一个volname
+nohup ./mefsck-cn check both --master "127.0.0.1:17010" -f "vol-cn.txt" -b 30 --mport "9092" > cn.out &
+
 ./fsck check inode ----master "127.0.0.1:17010" --vol "<volName>" --mport "17220"
 ./fsck check dentry --master "127.0.0.1:17010" --vol "<volName>" --mport "17220"
 ./fsck check both --master "127.0.0.1:17010" --vol "<volName>" --mport "17220"

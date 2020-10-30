@@ -24,6 +24,7 @@ var (
 	InodesFile string
 	DensFile   string
 	VolsFile   string
+	VolMaxBath int
 	MetaPort   string
 )
 
