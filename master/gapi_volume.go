@@ -69,6 +69,7 @@ func (s *VolumeService) registerObject(schema *schemabuilder.Schema) {
 			EnableToken:        vol.enableToken,
 			Tokens:             vol.tokens,
 			RwDpCnt:            vol.dataPartitions.readableAndWritableCnt,
+			RwMpCnt:            vol.writableMpCount,
 			MpCnt:              len(vol.MetaPartitions),
 			DpCnt:              len(vol.dataPartitions.partitionMap),
 			CreateTime:         time.Unix(vol.createTime, 0).Format(proto.TimeFormat),

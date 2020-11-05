@@ -34,6 +34,9 @@ type Vol struct {
 	OSSSecretKey       string
 	dpReplicaNum       uint8
 	mpReplicaNum       uint8
+	writableMpCount    int
+	// TODO 相应设置
+	MinWritableMPNum   uint64
 	Status             uint8
 	threshold          float32
 	dataPartitionSize  uint64
@@ -220,6 +223,18 @@ func (vol *Vol) getDataPartitionByID(partitionID uint64) (dp *DataPartition, err
 	return vol.dataPartitions.get(partitionID)
 }
 
+func (vol *Vol) setWritableMpCount(count int) {
+	vol.Lock()
+	defer vol.Unlock()
+	vol.writableMpCount = count
+}
+
+func (vol *Vol) getWritableMpCount() int {
+	vol.RLock()
+	defer vol.RUnlock()
+	return vol.writableMpCount
+}
+
 func (vol *Vol) initMetaPartitions(c *Cluster, count int) (err error) {
 	// initialize k meta partitionMap at a time
 	var (
@@ -323,7 +338,7 @@ func (vol *Vol) checkReplicaNum(c *Cluster) {
 	vol.NeedToLowerReplica = false
 }
 
-func (vol *Vol) checkMetaPartitions(c *Cluster) {
+func (vol *Vol) checkMetaPartitions(c *Cluster) (writableMpCount int) {
 	var tasks []*proto.AdminTask
 	vol.checkSplitMetaPartition(c)
 	maxPartitionID := vol.maxPartitionID()
@@ -351,8 +366,12 @@ func (vol *Vol) checkMetaPartitions(c *Cluster) {
 		mp.checkEnd(c, maxPartitionID)
 		mp.reportMissingReplicas(c.Name, c.leaderInfo.addr, defaultMetaPartitionTimeOutSec, defaultIntervalToAlarmMissingMetaPartition)
 		tasks = append(tasks, mp.replicaCreationTasks(c.Name, vol.Name)...)
+		if mp.Status == proto.ReadWrite {
+			writableMpCount++
+		}
 	}
 	c.addMetaNodeTasks(tasks)
+	return
 }
 
 func (vol *Vol) checkSplitMetaPartition(c *Cluster) {

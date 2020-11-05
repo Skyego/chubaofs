@@ -88,6 +88,7 @@ func (c *Cluster) scheduleTask() {
 	c.scheduleToCheckMetaPartitionRecoveryProgress()
 	c.scheduleToLoadMetaPartitions()
 	c.scheduleToReduceReplicaNum()
+	c.scheduleToCheckAutoMetaPartitionCreation()
 }
 
 func (c *Cluster) masterAddr() (addr string) {
@@ -291,7 +292,8 @@ func (c *Cluster) checkMetaPartitions() {
 	}()
 	vols := c.allVols()
 	for _, vol := range vols {
-		vol.checkMetaPartitions(c)
+		writableMpCount := vol.checkMetaPartitions(c)
+		vol.setWritableMpCount(writableMpCount)
 	}
 }
 

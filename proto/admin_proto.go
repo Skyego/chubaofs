@@ -534,6 +534,7 @@ type SimpleVolView struct {
 	Status             uint8
 	Capacity           uint64 // GB
 	RwDpCnt            int
+	RwMpCnt            int
 	MpCnt              int
 	DpCnt              int
 	FollowerRead       bool
