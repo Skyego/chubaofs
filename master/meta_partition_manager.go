@@ -236,6 +236,7 @@ func (vol *Vol) autoCreateMetaPartitions(c *Cluster) {
 			log.LogWarnf("action[autoCreateMetaPartitions],cluster[%v],vol[%v],err[%v],create it later", c.Name, vol.Name, err)
 			return
 		}
+		log.LogErrorf("yqy vol[%v] RW mp count[%v],all MpCnt[%v]", vol.Name, count, len(vol.MetaPartitions))
 		var nextStart uint64
 		if mp.MaxInodeID <= 0 {
 			nextStart = mp.Start + defaultMetaPartitionInodeIDStep
