@@ -57,7 +57,13 @@ func (nodes SortedWeightedNodes) Swap(i, j int) {
 	nodes[i], nodes[j] = nodes[j], nodes[i]
 }
 
-func (nodes SortedWeightedNodes) setNodeCarry(availCarryCount, replicaNum int) {
+func (nodes SortedWeightedNodes) setNodeCarry(availCarryCount, replicaNum int, isMN bool) {
+	if isMN {
+		log.LogError("yqy availCarryCount replicaNum ", availCarryCount, replicaNum)
+		for _, nt := range nodes {
+			log.LogErrorf("yqy addr[%v],carry[%v],Weight[%v]", nt.Ptr.GetAddr(), nt.Carry, nt.Weight)
+		}
+	}
 	if availCarryCount >= replicaNum {
 		return
 	}
@@ -68,6 +74,7 @@ func (nodes SortedWeightedNodes) setNodeCarry(availCarryCount, replicaNum int) {
 			if carry > 10.0 {
 				carry = 10.0
 			}
+			log.LogErrorf("yqy addr[%v],carry[%v],Weight[%v], carry[%v]", nt.Ptr.GetAddr(), nt.Carry, nt.Weight, carry)
 			nt.Carry = carry
 			nt.Ptr.SetCarry(carry)
 			if carry > 1.0 {
@@ -178,6 +185,7 @@ func getAvailHosts(nodes *sync.Map, excludeHosts []string, replicaNum int, selec
 	var (
 		maxTotalFunc      GetMaxTotal
 		getCarryNodesFunc GetCarryNodes
+		isMN bool
 	)
 	orderHosts := make([]string, 0)
 	newHosts = make([]string, 0)
@@ -189,9 +197,11 @@ func getAvailHosts(nodes *sync.Map, excludeHosts []string, replicaNum int, selec
 	case selectDataNode:
 		maxTotalFunc = getDataNodeMaxTotal
 		getCarryNodesFunc = getAvailCarryDataNodeTab
+		isMN = false
 	case selectMetaNode:
 		maxTotalFunc = getMetaNodeMaxTotal
 		getCarryNodesFunc = getAllCarryMetaNodes
+		isMN = true
 	default:
 		return nil, nil, fmt.Errorf("invalid selectType[%v]", selectType)
 	}
@@ -202,7 +212,7 @@ func getAvailHosts(nodes *sync.Map, excludeHosts []string, replicaNum int, selec
 			replicaNum, len(weightedNodes))
 		return
 	}
-	weightedNodes.setNodeCarry(count, replicaNum)
+	weightedNodes.setNodeCarry(count, replicaNum, isMN)
 	sort.Sort(weightedNodes)
 
 	for i := 0; i < replicaNum; i++ {
