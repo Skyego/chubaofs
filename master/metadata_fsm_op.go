@@ -61,7 +61,7 @@ type metaPartitionValue struct {
 	VolID       uint64
 	ReplicaNum  uint8
 	Status      int8
-	StoreType   uint8
+	StoreType   uint8//
 	VolName     string
 	Hosts       string
 	Peers       []bsProto.Peer
@@ -75,7 +75,7 @@ func newMetaPartitionValue(mp *MetaPartition) (mpv *metaPartitionValue) {
 		End:         mp.End,
 		VolID:       mp.volID,
 		ReplicaNum:  mp.ReplicaNum,
-		StoreType:   uint8(mp.StoreType),
+		StoreType:   uint8(mp.StoreType),//
 		Status:      mp.Status,
 		VolName:     mp.VolName,
 		Hosts:       mp.hostsToString(),
@@ -139,7 +139,7 @@ type volValue struct {
 	OSSSecretKey      string
 	CreateTime        int64
 	Description       string
-	MpStoreType       bsProto.StoreType
+	MpStoreType       bsProto.StoreType//
 }
 
 func (v *volValue) Bytes() (raw []byte, err error) {
@@ -694,7 +694,7 @@ func (c *Cluster) loadMetaPartitions() (err error) {
 				mpv.Peers[i].ID = mn.(*MetaNode).ID
 			}
 		}
-		mp := newMetaPartition(mpv.PartitionID, mpv.Start, mpv.End, vol.mpReplicaNum, vol.Name, mpv.VolID, bsProto.StoreType(mpv.StoreType))
+		mp := newMetaPartition(mpv.PartitionID, mpv.Start, mpv.End, vol.mpReplicaNum, vol.Name, mpv.VolID, bsProto.StoreType(mpv.StoreType))//
 		mp.setHosts(strings.Split(mpv.Hosts, underlineSeparator))
 		mp.setPeers(mpv.Peers)
 		mp.IsRecover = mpv.IsRecover

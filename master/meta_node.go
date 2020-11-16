@@ -36,7 +36,7 @@ type MetaNode struct {
 	SelectCount               uint64
 	Carry                     float64
 	Threshold                 float32
-	StoreType                 proto.StoreType
+	StoreType                 proto.StoreType//
 	ReportTime                time.Time
 	metaPartitionInfos        []*proto.MetaPartitionReport
 	MetaPartitionCount        int
@@ -113,7 +113,7 @@ func (metaNode *MetaNode) setNodeActive() {
 func (metaNode *MetaNode) updateMetric(resp *proto.MetaNodeHeartbeatResponse, threshold float32) {
 	metaNode.Lock()
 	defer metaNode.Unlock()
-	metaNode.metaPartitionInfos = resp.MetaPartitionReports
+	metaNode.metaPartitionInfos = resp.MetaPartitionReports//
 	metaNode.MetaPartitionCount = len(metaNode.metaPartitionInfos)
 	metaNode.Total = resp.Total
 	metaNode.Used = resp.Used

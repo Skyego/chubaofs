@@ -52,7 +52,7 @@ type MetaPartition struct {
 	DentryCount  uint64
 	Replicas     []*MetaReplica
 	ReplicaNum   uint8
-	StoreType    proto.StoreType
+	StoreType    proto.StoreType//
 	Status       int8
 	IsRecover    bool
 	volID        uint64
@@ -74,7 +74,7 @@ func newMetaReplica(start, end uint64, metaNode *MetaNode) (mr *MetaReplica) {
 func newMetaPartition(partitionID, start, end uint64, replicaNum uint8, volName string, volID uint64, mpStoreType proto.StoreType) (mp *MetaPartition) {
 	mp = &MetaPartition{PartitionID: partitionID, Start: start, End: end, VolName: volName, volID: volID}
 	mp.ReplicaNum = replicaNum
-	mp.StoreType = mpStoreType
+	mp.StoreType = mpStoreType//
 	mp.Replicas = make([]*MetaReplica, 0)
 	mp.Status = proto.Unavailable
 	mp.MissNodes = make(map[string]int64, 0)
@@ -257,6 +257,7 @@ func (mp *MetaPartition) checkStatus(clusterID string, writeLog bool, replicaNum
 			if mr.metaNode == nil {
 				continue
 			}
+			//计算需不需要分裂mp，新加的后面的判断条件，如果总数大于step也需要扩。
 			if !mr.metaNode.reachesThreshold() && mr.InodeCount < defaultMetaPartitionInodeIDStep {
 				continue
 			}
@@ -341,7 +342,7 @@ func (mp *MetaPartition) updateMetaPartition(mgr *proto.MetaPartitionReport, met
 		mr = newMetaReplica(mp.Start, mp.End, metaNode)
 		mp.addReplica(mr)
 	}
-	mp.StoreType = mgr.StoreType
+	mp.StoreType = mgr.StoreType//
 	mr.updateMetric(mgr)
 	mp.setMaxInodeID()
 	mp.setInodeCount()
@@ -500,7 +501,7 @@ func (mp *MetaPartition) buildNewMetaPartitionTasks(specifyAddrs []string, peers
 		PartitionID: mp.PartitionID,
 		Members:     peers,
 		VolName:     volName,
-		StoreType:   storeType,
+		StoreType:   storeType,//
 	}
 	if specifyAddrs == nil {
 		hosts = mp.Hosts
@@ -540,7 +541,7 @@ func (mp *MetaPartition) createTaskToCreateReplica(host string) (t *proto.AdminT
 		PartitionID: mp.PartitionID,
 		Members:     mp.Peers,
 		VolName:     mp.VolName,
-		StoreType:   mp.StoreType,
+		StoreType:   mp.StoreType,//
 	}
 	t = proto.NewAdminTask(proto.OpCreateMetaPartition, host, req)
 	resetMetaPartitionTaskID(t, mp.PartitionID)
@@ -621,7 +622,7 @@ func (mr *MetaReplica) setLastReportTime() {
 	mr.ReportTime = time.Now().Unix()
 }
 
-func (mr *MetaReplica) updateMetric(mgr *proto.MetaPartitionReport) {
+func (mr *MetaReplica) updateMetric(mgr *proto.MetaPartitionReport) { //
 	mr.Status = (int8)(mgr.Status)
 	mr.IsLeader = mgr.IsLeader
 	mr.MaxInodeID = mgr.MaxInodeID

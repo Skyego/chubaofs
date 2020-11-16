@@ -674,15 +674,16 @@ func (zone *Zone) getAvailDataNodeHosts(excludeNodeSets []uint64, excludeHosts [
 	return ns.getAvailDataNodeHosts(excludeHosts, replicaNum)
 }
 
+//
 func (zone *Zone) getAvailMetaNodeHosts(excludeNodeSets []uint64, excludeHosts []string, replicaNum int, storeType proto.StoreType) (newHosts []string, peers []proto.Peer, err error) {
 	if replicaNum == 0 {
 		return
 	}
-	ns, err := zone.allocNodeSetForMetaNode(excludeNodeSets, uint8(replicaNum))
+	ns, err := zone.allocNodeSetForMetaNode(excludeNodeSets, uint8(replicaNum))//
 	if err != nil {
 		return nil, nil, errors.NewErrorf("zone[%v],err[%v]", zone.name, err)
 	}
-	return ns.getAvailMetaNodeHosts(excludeHosts, replicaNum, storeType)
+	return ns.getAvailMetaNodeHosts(excludeHosts, replicaNum, storeType)//
 
 }
 

@@ -35,7 +35,7 @@ const (
 	metaPartitionCountKey   = "mpCount"
 	volCapacityKey          = "capacity"
 	volOwnerKey             = "owner"
-	volMpStoreTypeKey       = "mpStoreType"
+	volMpStoreTypeKey       = "mpStoreType"//
 	volAuthKey              = "authKey"
 	replicaNumKey           = "replicaNum"
 	followerReadKey         = "followerRead"

@@ -26,6 +26,7 @@ import (
 const (
 	selectDataNode = 0
 	selectMetaNode = 1
+	selectRocksDBMetaNode = 2
 )
 
 type weightedNode struct {
@@ -102,6 +103,17 @@ func getMetaNodeMaxTotal(metaNodes *sync.Map) (maxTotal uint64) {
 	return
 }
 
+func getRocksDBMetaNodeMaxTotal(metaNodes *sync.Map) (maxTotal uint64) {
+	metaNodes.Range(func(key, value interface{}) bool {
+		metaNode := value.(*MetaNode)
+		if metaNode.Total > maxTotal {
+			maxTotal = metaNode.Total
+		}
+		return true
+	})
+	return
+}
+
 func getDataNodeMaxTotal(dataNodes *sync.Map) (maxTotal uint64) {
 	dataNodes.Range(func(key, value interface{}) bool {
 		dataNode := value.(*DataNode)
@@ -116,6 +128,35 @@ func getDataNodeMaxTotal(dataNodes *sync.Map) (maxTotal uint64) {
 type GetCarryNodes func(maxTotal uint64, excludeHosts []string, nodes *sync.Map) (weightedNodes SortedWeightedNodes, availCount int)
 
 func getAllCarryMetaNodes(maxTotal uint64, excludeHosts []string, metaNodes *sync.Map) (nodes SortedWeightedNodes, availCount int) {
+	nodes = make(SortedWeightedNodes, 0)
+	metaNodes.Range(func(key, value interface{}) bool {
+		metaNode := value.(*MetaNode)
+		if contains(excludeHosts, metaNode.Addr) == true {
+			return true
+		}
+		if metaNode.isWritable() == false {
+			return true
+		}
+		if metaNode.isCarryNode() == true {
+			availCount++
+		}
+		nt := new(weightedNode)
+		nt.Carry = metaNode.Carry
+		if metaNode.Used < 0 {
+			nt.Weight = 1.0
+		} else {
+			nt.Weight = (float64)(maxTotal-metaNode.Used) / (float64)(maxTotal)
+		}
+		nt.Ptr = metaNode
+		nodes = append(nodes, nt)
+
+		return true
+	})
+
+	return
+}
+
+func getRocksDBAllCarryMetaNodes(maxTotal uint64, excludeHosts []string, metaNodes *sync.Map) (nodes SortedWeightedNodes, availCount int) {
 	nodes = make(SortedWeightedNodes, 0)
 	metaNodes.Range(func(key, value interface{}) bool {
 		metaNode := value.(*MetaNode)
@@ -193,6 +234,9 @@ func getAvailHosts(nodes *sync.Map, excludeHosts []string, replicaNum int, selec
 	case selectMetaNode:
 		maxTotalFunc = getMetaNodeMaxTotal
 		getCarryNodesFunc = getAllCarryMetaNodes
+	case selectRocksDBMetaNode:
+		maxTotalFunc = getRocksDBMetaNodeMaxTotal
+		getCarryNodesFunc = getRocksDBAllCarryMetaNodes
 	default:
 		return nil, nil, fmt.Errorf("invalid selectType[%v]", selectType)
 	}
@@ -221,6 +265,7 @@ func getAvailHosts(nodes *sync.Map, excludeHosts []string, replicaNum int, selec
 	return
 }
 
+/**/
 func (ns *nodeSet) getStoreTypeMetaNodes(storeType proto.StoreType) *sync.Map {
 
 	metaNodes := &sync.Map{}

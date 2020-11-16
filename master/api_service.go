@@ -1004,7 +1004,7 @@ func (m *Server) addMetaNode(w http.ResponseWriter, r *http.Request) {
 	var (
 		nodeAddr  string
 		zoneName  string
-		storeType proto.StoreType
+		storeType proto.StoreType//
 		id        uint64
 		err       error
 	)
@@ -1012,7 +1012,7 @@ func (m *Server) addMetaNode(w http.ResponseWriter, r *http.Request) {
 		sendErrReply(w, r, &proto.HTTPReply{Code: proto.ErrCodeParamError, Msg: err.Error()})
 		return
 	}
-	if storeType, err = extractMpStoreType(r); err != nil {
+	if storeType, err = extractMpStoreType(r); err != nil {//
 		sendErrReply(w, r, &proto.HTTPReply{Code: proto.ErrCodeParamError, Msg: err.Error()})
 		return
 	}
@@ -1996,7 +1996,7 @@ func getMetaPartitionView(mp *MetaPartition) (mpView *proto.MetaPartitionView) {
 	mpView.MaxInodeID = mp.MaxInodeID
 	mpView.InodeCount = mp.InodeCount
 	mpView.DentryCount = mp.DentryCount
-	mpView.StoreType = mp.StoreType
+	mpView.StoreType = mp.StoreType//
 	mpView.IsRecover = mp.IsRecover
 	return
 }
@@ -2047,7 +2047,7 @@ func (m *Server) getMetaPartition(w http.ResponseWriter, r *http.Request) {
 			ReplicaNum:   mp.ReplicaNum,
 			Status:       mp.Status,
 			IsRecover:    mp.IsRecover,
-			StoreType:    mp.StoreType,
+			StoreType:    mp.StoreType,//
 			Hosts:        mp.Hosts,
 			Peers:        mp.Peers,
 			Zones:        zones,
@@ -2144,7 +2144,7 @@ func extractName(r *http.Request) (name string, err error) {
 	return
 }
 
-func extractMpStoreType(r *http.Request) (mpStoreType proto.StoreType, err error) {
+func extractMpStoreType(r *http.Request) (mpStoreType proto.StoreType, err error) {//
 	var s string
 	if s = r.FormValue(volMpStoreTypeKey); s == "" {
 		mpStoreType = proto.MetaTypeMemory

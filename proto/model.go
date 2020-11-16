@@ -32,7 +32,7 @@ type MetaNodeInfo struct {
 	Total                     uint64 `json:"TotalWeight"`
 	Used                      uint64 `json:"UsedWeight"`
 	Ratio                     float64
-	StoreType                 StoreType
+	StoreType                 StoreType//
 	SelectCount               uint64
 	Carry                     float64
 	Threshold                 float32
@@ -74,7 +74,7 @@ type MetaPartitionInfo struct {
 	Replicas     []*MetaReplicaInfo
 	ReplicaNum   uint8
 	Status       int8
-	StoreType    StoreType
+	StoreType    StoreType//
 	IsRecover    bool
 	Hosts        []string
 	Peers        []Peer
@@ -102,11 +102,11 @@ type ClusterView struct {
 	MaxMetaNodeID       uint64
 	MaxMetaPartitionID  uint64
 	DataNodeStatInfo    *NodeStatInfo
-	MetaNodeStatInfo    *NodeStatInfo
+	MetaNodeStatInfo    *NodeStatInfo//
 	VolStatInfo         []*VolStatInfo
 	BadPartitionIDs     []BadPartitionView
 	BadMetaPartitionIDs []BadPartitionView
-	MetaNodes           []NodeView
+	MetaNodes           []NodeView//
 	DataNodes           []NodeView
 }
 
@@ -125,7 +125,7 @@ type BadPartitionView struct {
 
 type ClusterStatInfo struct {
 	DataNodeStatInfo *NodeStatInfo
-	MetaNodeStatInfo *NodeStatInfo
+	MetaNodeStatInfo *NodeStatInfo//
 	ZoneStatInfo     map[string]*ZoneStat
 }
 

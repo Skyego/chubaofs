@@ -89,6 +89,7 @@ func (s *ClusterService) registerObject(schema *schemabuilder.Schema) {
 
 	nv := schema.Object("NodeView", proto.NodeView{})
 
+	//
 	nv.FieldFunc("storeType", func(ctx context.Context, n *proto.NodeView) (proto.StoreType, error) {
 		if _, _, err := permissions(ctx, ADMIN); err != nil {
 			return proto.MetaTypeUnKnown, err

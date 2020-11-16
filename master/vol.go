@@ -47,7 +47,7 @@ type Vol struct {
 	tokens             map[string]*proto.Token
 	tokensLock         sync.RWMutex
 	MetaPartitions     map[uint64]*MetaPartition `graphql:"-"`
-	mpStoreType        proto.StoreType           //metaPartition store type
+	mpStoreType        proto.StoreType           //metaPartition store type 以及对应显示设置使用等
 	mpsLock            sync.RWMutex
 	dataPartitions     *DataPartitionMap
 	mpsCache           []byte
@@ -789,7 +789,7 @@ func (vol *Vol) doCreateMetaPartition(c *Cluster, start, end uint64) (mp *MetaPa
 	if partitionID, err = c.idAlloc.allocateMetaPartitionID(); err != nil {
 		return nil, errors.NewError(err)
 	}
-	mp = newMetaPartition(partitionID, start, end, vol.mpReplicaNum, vol.Name, vol.ID, vol.mpStoreType)
+	mp = newMetaPartition(partitionID, start, end, vol.mpReplicaNum, vol.Name, vol.ID, vol.mpStoreType)//
 	mp.setHosts(hosts)
 	mp.setPeers(peers)
 	for _, host := range hosts {

@@ -44,7 +44,7 @@ type Cluster struct {
 	idAlloc                   *IDAllocator
 	t                         *topology
 	dataNodeStatInfo          *nodeStatInfo
-	metaNodeStatInfo          *nodeStatInfo
+	metaNodeStatInfo          *nodeStatInfo//
 	zoneStatInfos             map[string]*proto.ZoneStat
 	volStatInfo               sync.Map
 	BadDataPartitionIds       *sync.Map
@@ -430,6 +430,7 @@ func (c *Cluster) updateMetaNodeBaseInfo(nodeAddr string, id uint64) (err error)
 	return
 }
 
+// MN不再具有disk还是mem Type的区别
 func (c *Cluster) addMetaNode(nodeAddr, zoneName string, storeType proto.StoreType) (id uint64, err error) {
 	c.mnMutex.Lock()
 	defer c.mnMutex.Unlock()
@@ -759,7 +760,7 @@ func (c *Cluster) syncCreateDataPartitionToDataNode(host string, size uint64, dp
 func (c *Cluster) syncCreateMetaPartitionToMetaNode(host string, mp *MetaPartition) (err error) {
 	hosts := make([]string, 0)
 	hosts = append(hosts, host)
-	tasks := mp.buildNewMetaPartitionTasks(hosts, mp.Peers, mp.VolName, mp.StoreType)
+	tasks := mp.buildNewMetaPartitionTasks(hosts, mp.Peers, mp.VolName, mp.StoreType)//
 	metaNode, err := c.metaNode(host)
 	if err != nil {
 		return
@@ -1574,6 +1575,7 @@ errHandler:
 	return
 }
 
+//
 // Create a new volume.
 // By default we create 3 meta partitions and 10 data partitions during initialization.
 //func (c *Cluster) createVol(name, owner, zoneName, description string, mpCount, dpReplicaNum, size, capacity int, followerRead, authenticate, crossZone, enableToken bool) (vol *Vol, err error) {
@@ -1701,6 +1703,7 @@ func (c *Cluster) updateInodeIDRange(volName string, start uint64) (err error) {
 }
 
 // Choose the target hosts from the available zones and meta nodes.
+//
 func (c *Cluster) chooseTargetMetaHosts(excludeZone string, excludeNodeSets []uint64, excludeHosts []string, replicaNum int, crossZone bool, specifiedZone string, storeType proto.StoreType) (hosts []string, peers []proto.Peer, err error) {
 	var (
 		zones      []*Zone
@@ -1833,6 +1836,7 @@ func (c *Cluster) allMetaNodes() (metaNodes []proto.NodeView) {
 	metaNodes = make([]proto.NodeView, 0)
 	c.metaNodes.Range(func(addr, node interface{}) bool {
 		metaNode := node.(*MetaNode)
+		//
 		metaNodeView := proto.NodeView{
 			ID:         metaNode.ID,
 			Addr:       metaNode.Addr,
