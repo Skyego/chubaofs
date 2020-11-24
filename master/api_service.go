@@ -1130,6 +1130,7 @@ func (m *Server) getMetaNode(w http.ResponseWriter, r *http.Request) {
 		Ratio:                     metaNode.Ratio,
 		SelectCount:               metaNode.SelectCount,
 		Carry:                     metaNode.Carry,
+		DiskCarry:                 metaNode.DiskCarry,
 		Threshold:                 metaNode.Threshold,
 		ReportTime:                metaNode.ReportTime,
 		MetaPartitionCount:        metaNode.MetaPartitionCount,

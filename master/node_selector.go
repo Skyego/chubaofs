@@ -25,6 +25,7 @@ import (
 const (
 	selectDataNode = 0
 	selectMetaNode = 1
+	selectMetaNodeOfDisk = 2
 )
 
 type weightedNode struct {
@@ -36,8 +37,8 @@ type weightedNode struct {
 
 // Node defines an interface that needs to be implemented by weightedNode
 type Node interface {
-	SetCarry(carry float64)
-	SelectNodeForWrite()
+	SetCarry(carry float64, nodeType proto.StoreType)
+	SelectNodeForWrite(nodeType proto.StoreType)
 	GetID() uint64
 	GetAddr() string
 }
@@ -57,7 +58,7 @@ func (nodes SortedWeightedNodes) Swap(i, j int) {
 	nodes[i], nodes[j] = nodes[j], nodes[i]
 }
 
-func (nodes SortedWeightedNodes) setNodeCarry(availCarryCount, replicaNum int) {
+func (nodes SortedWeightedNodes) setNodeCarry(availCarryCount, replicaNum int, nodeType proto.StoreType) {
 	if availCarryCount >= replicaNum {
 		return
 	}
@@ -69,7 +70,7 @@ func (nodes SortedWeightedNodes) setNodeCarry(availCarryCount, replicaNum int) {
 				carry = 10.0
 			}
 			nt.Carry = carry
-			nt.Ptr.SetCarry(carry)
+			nt.Ptr.SetCarry(carry, nodeType)
 			if carry > 1.0 {
 				availCarryCount++
 			}
@@ -95,6 +96,17 @@ func getMetaNodeMaxTotal(metaNodes *sync.Map) (maxTotal uint64) {
 		metaNode := value.(*MetaNode)
 		if metaNode.Total > maxTotal {
 			maxTotal = metaNode.Total
+		}
+		return true
+	})
+	return
+}
+
+func getMetaNodeMaxTotalByDiskSpace(metaNodes *sync.Map) (maxTotal uint64) {
+	metaNodes.Range(func(key, value interface{}) bool {
+		metaNode := value.(*MetaNode)
+		if metaNode.DiskTotal > maxTotal {
+			maxTotal = metaNode.DiskTotal
 		}
 		return true
 	})
@@ -143,6 +155,35 @@ func getAllCarryMetaNodes(maxTotal uint64, excludeHosts []string, metaNodes *syn
 	return
 }
 
+func getAllCarryMetaNodesByDiskSpace(maxTotal uint64, excludeHosts []string, metaNodes *sync.Map) (nodes SortedWeightedNodes, availCount int) {
+	nodes = make(SortedWeightedNodes, 0)
+	metaNodes.Range(func(key, value interface{}) bool {
+		metaNode := value.(*MetaNode)
+		if contains(excludeHosts, metaNode.Addr) == true {
+			return true
+		}
+		if metaNode.isWritableByDiskSpace() == false {
+			return true
+		}
+		if metaNode.isCarryNodeByDiskSpace() == true {
+			availCount++
+		}
+		nt := new(weightedNode)
+		nt.Carry = metaNode.DiskCarry
+		if metaNode.DiskUsed < 0 {
+			nt.Weight = 1.0
+		} else {
+			nt.Weight = (float64)(maxTotal-metaNode.DiskUsed) / (float64)(maxTotal)
+		}
+		nt.Ptr = metaNode
+		nodes = append(nodes, nt)
+
+		return true
+	})
+
+	return
+}
+
 func getAvailCarryDataNodeTab(maxTotal uint64, excludeHosts []string, dataNodes *sync.Map) (nodeTabs SortedWeightedNodes, availCount int) {
 	nodeTabs = make(SortedWeightedNodes, 0)
 	dataNodes.Range(func(key, value interface{}) bool {
@@ -178,6 +219,7 @@ func getAvailHosts(nodes *sync.Map, excludeHosts []string, replicaNum int, selec
 	var (
 		maxTotalFunc      GetMaxTotal
 		getCarryNodesFunc GetCarryNodes
+		nodeType          proto.StoreType
 	)
 	orderHosts := make([]string, 0)
 	newHosts = make([]string, 0)
@@ -189,9 +231,15 @@ func getAvailHosts(nodes *sync.Map, excludeHosts []string, replicaNum int, selec
 	case selectDataNode:
 		maxTotalFunc = getDataNodeMaxTotal
 		getCarryNodesFunc = getAvailCarryDataNodeTab
+		nodeType = proto.DataTypeNormal
 	case selectMetaNode:
 		maxTotalFunc = getMetaNodeMaxTotal
 		getCarryNodesFunc = getAllCarryMetaNodes
+		nodeType = proto.MetaTypeMemory
+	case selectMetaNodeOfDisk:
+		maxTotalFunc = getMetaNodeMaxTotalByDiskSpace
+		getCarryNodesFunc = getAllCarryMetaNodesByDiskSpace
+		nodeType = proto.MetaTypeRocks
 	default:
 		return nil, nil, fmt.Errorf("invalid selectType[%v]", selectType)
 	}
@@ -202,12 +250,12 @@ func getAvailHosts(nodes *sync.Map, excludeHosts []string, replicaNum int, selec
 			replicaNum, len(weightedNodes))
 		return
 	}
-	weightedNodes.setNodeCarry(count, replicaNum)
+	weightedNodes.setNodeCarry(count, replicaNum, nodeType)
 	sort.Sort(weightedNodes)
 
 	for i := 0; i < replicaNum; i++ {
 		node := weightedNodes[i].Ptr
-		node.SelectNodeForWrite()
+		node.SelectNodeForWrite(nodeType)
 		orderHosts = append(orderHosts, node.GetAddr())
 		peer := proto.Peer{ID: node.GetID(), Addr: node.GetAddr()}
 		peers = append(peers, peer)

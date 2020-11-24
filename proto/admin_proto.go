@@ -122,6 +122,16 @@ const (
 	ReadWriteToken = 2
 )
 
+type StoreType uint8
+
+const (
+	MetaTypeMemory StoreType = iota
+	MetaTypeRocks
+	DataTypeNormal
+
+	MetaTypeUnKnown = 255
+)
+
 type Token struct {
 	TokenType int8
 	Value     string
