@@ -351,7 +351,7 @@ func (c *Cluster) checkVolReduceReplicaNum() {
 		vol.checkReplicaNum(c)
 	}
 }
-func (c *Cluster) repairDataPartition(wg sync.WaitGroup) {
+func (c *Cluster) repairDataPartition(wg *sync.WaitGroup) {
 	for i := 0; i < cap(c.dpRepairChan); i++ {
 		select {
 		case task := <-c.dpRepairChan:
@@ -386,7 +386,7 @@ func (c *Cluster) repairDataPartition(wg sync.WaitGroup) {
 	}
 }
 
-func (c *Cluster) repairMetaPartition(wg sync.WaitGroup) {
+func (c *Cluster) repairMetaPartition(wg *sync.WaitGroup) {
 	for i := 0; i < cap(c.mpRepairChan); i++ {
 		select {
 		case task := <-c.mpRepairChan:
@@ -442,7 +442,7 @@ func (c *Cluster) scheduleToRepairMultiZoneMetaPartitions() {
 	//consumer
 	go func() {
 		for {
-			var wg sync.WaitGroup
+			wg := new(sync.WaitGroup)
 			c.repairMetaPartition(wg)
 			wg.Wait()
 			time.Sleep(time.Second * defaultIntervalToCheckDataPartition)
@@ -493,7 +493,7 @@ func (c *Cluster) scheduleToRepairMultiZoneDataPartitions() {
 	//consumer
 	go func() {
 		for {
-			var wg sync.WaitGroup
+			wg := new(sync.WaitGroup)
 			c.repairDataPartition(wg)
 			wg.Wait()
 			time.Sleep(time.Second * defaultIntervalToCheckDataPartition)
