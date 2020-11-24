@@ -81,31 +81,31 @@ func (metaNode *MetaNode) GetAddr() string {
 }
 
 // SetCarry implements the Node interface
-func (metaNode *MetaNode) SetCarry(carry float64, nodeType proto.StoreType) {
+func (metaNode *MetaNode) SetCarry(carry float64, selectType int) {
 	metaNode.Lock()
 	defer metaNode.Unlock()
-	switch nodeType {
-	case proto.MetaTypeMemory:
+	switch selectType {
+	case selectMetaNode:
 		metaNode.Carry = carry
-	case proto.MetaTypeRocks:
+	case selectMetaNodeOfDisk:
 		metaNode.DiskCarry = carry
 	default:
-		log.LogErrorf("action[SetCarry] node[%v] wrong type[%v]", metaNode.Addr, nodeType)
+		log.LogErrorf("action[SetCarry] node[%v] wrong type[%v]", metaNode.Addr, selectType)
 	}
 }
 
 // SelectNodeForWrite implements the Node interface
-func (metaNode *MetaNode) SelectNodeForWrite(nodeType proto.StoreType) {
+func (metaNode *MetaNode) SelectNodeForWrite(selectType int) {
 	metaNode.Lock()
 	defer metaNode.Unlock()
 	metaNode.SelectCount++
-	switch nodeType {
-	case proto.MetaTypeMemory:
+	switch selectType {
+	case selectMetaNode:
 		metaNode.Carry = metaNode.Carry - 1.0
-	case proto.MetaTypeRocks:
+	case selectMetaNodeOfDisk:
 		metaNode.DiskCarry = metaNode.DiskCarry - 1.0
 	default:
-		log.LogErrorf("action[SelectNodeForWrite] node[%v] wrong type[%v]", metaNode.Addr, nodeType)
+		log.LogErrorf("action[SelectNodeForWrite] node[%v] wrong type[%v]", metaNode.Addr, selectType)
 	}
 }
 

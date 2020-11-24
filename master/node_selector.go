@@ -37,8 +37,8 @@ type weightedNode struct {
 
 // Node defines an interface that needs to be implemented by weightedNode
 type Node interface {
-	SetCarry(carry float64, nodeType proto.StoreType)
-	SelectNodeForWrite(nodeType proto.StoreType)
+	SetCarry(carry float64, selectType int)
+	SelectNodeForWrite(selectType int)
 	GetID() uint64
 	GetAddr() string
 }
@@ -58,7 +58,7 @@ func (nodes SortedWeightedNodes) Swap(i, j int) {
 	nodes[i], nodes[j] = nodes[j], nodes[i]
 }
 
-func (nodes SortedWeightedNodes) setNodeCarry(availCarryCount, replicaNum int, nodeType proto.StoreType) {
+func (nodes SortedWeightedNodes) setNodeCarry(availCarryCount, replicaNum int, selectType int) {
 	if availCarryCount >= replicaNum {
 		return
 	}
@@ -70,7 +70,7 @@ func (nodes SortedWeightedNodes) setNodeCarry(availCarryCount, replicaNum int, n
 				carry = 10.0
 			}
 			nt.Carry = carry
-			nt.Ptr.SetCarry(carry, nodeType)
+			nt.Ptr.SetCarry(carry, selectType)
 			if carry > 1.0 {
 				availCarryCount++
 			}
@@ -219,7 +219,6 @@ func getAvailHosts(nodes *sync.Map, excludeHosts []string, replicaNum int, selec
 	var (
 		maxTotalFunc      GetMaxTotal
 		getCarryNodesFunc GetCarryNodes
-		nodeType          proto.StoreType
 	)
 	orderHosts := make([]string, 0)
 	newHosts = make([]string, 0)
@@ -231,15 +230,12 @@ func getAvailHosts(nodes *sync.Map, excludeHosts []string, replicaNum int, selec
 	case selectDataNode:
 		maxTotalFunc = getDataNodeMaxTotal
 		getCarryNodesFunc = getAvailCarryDataNodeTab
-		nodeType = proto.DataTypeNormal
 	case selectMetaNode:
 		maxTotalFunc = getMetaNodeMaxTotal
 		getCarryNodesFunc = getAllCarryMetaNodes
-		nodeType = proto.MetaTypeMemory
 	case selectMetaNodeOfDisk:
 		maxTotalFunc = getMetaNodeMaxTotalByDiskSpace
 		getCarryNodesFunc = getAllCarryMetaNodesByDiskSpace
-		nodeType = proto.MetaTypeRocks
 	default:
 		return nil, nil, fmt.Errorf("invalid selectType[%v]", selectType)
 	}
@@ -250,12 +246,12 @@ func getAvailHosts(nodes *sync.Map, excludeHosts []string, replicaNum int, selec
 			replicaNum, len(weightedNodes))
 		return
 	}
-	weightedNodes.setNodeCarry(count, replicaNum, nodeType)
+	weightedNodes.setNodeCarry(count, replicaNum, selectType)
 	sort.Sort(weightedNodes)
 
 	for i := 0; i < replicaNum; i++ {
 		node := weightedNodes[i].Ptr
-		node.SelectNodeForWrite(nodeType)
+		node.SelectNodeForWrite(selectType)
 		orderHosts = append(orderHosts, node.GetAddr())
 		peer := proto.Peer{ID: node.GetID(), Addr: node.GetAddr()}
 		peers = append(peers, peer)
