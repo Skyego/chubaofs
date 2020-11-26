@@ -62,6 +62,7 @@ type Cluster struct {
 	lastPermutationsForZone   uint8
 	dpRepairChan              chan *RepairTask
 	mpRepairChan              chan *RepairTask
+	clientBinFileInfo         *ClientBinFileInfo
 }
 type (
 	RepairType uint8
@@ -74,6 +75,12 @@ const (
 	RepairDataDecommission
 	RepairAddReplica
 )
+
+type ClientBinFileInfo struct {
+	Addr     string // url path
+	Md5      string
+	Interval time.Duration
+}
 
 type RepairTask struct {
 	RType       RepairType
@@ -101,6 +108,7 @@ func newCluster(name string, leaderInfo *LeaderInfo, fsm *MetadataFsm, partition
 	c.idAlloc = newIDAllocator(c.fsm.store, c.partition)
 	c.initDpRepairChan()
 	c.initMpRepairChan()
+	c.clientBinFileInfo = new(ClientBinFileInfo)
 	return
 }
 

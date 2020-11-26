@@ -58,6 +58,8 @@ const (
 	descriptionKey          = "description"
 	dpRecoverPoolSizeKey    = "dpRecoverPool"
 	mpRecoverPoolSizeKey    = "mpRecoverPool"
+	md5Key                  = "md5"
+	checkIntervalKey        = "interval"
 )
 
 const (

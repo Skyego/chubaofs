@@ -235,6 +235,12 @@ func (m *Server) registerAPIRoutes(router *mux.Router) {
 	router.NewRoute().Methods(http.MethodGet, http.MethodPost).
 		Path(proto.AdminSetNodeState).
 		HandlerFunc(m.setNodeToOfflineState)
+	router.NewRoute().Methods(http.MethodGet, http.MethodPost).
+		Path(proto.AdminGetClientBinFileInfo).
+		HandlerFunc(m.getClientBinFileInfoHandler)
+	router.NewRoute().Methods(http.MethodGet, http.MethodPost).
+		Path(proto.AdminSetClientBinFileInfo).
+		HandlerFunc(m.setClientBinFileInfoHandler)
 
 	// user management APIs
 	router.NewRoute().Methods(http.MethodPost).

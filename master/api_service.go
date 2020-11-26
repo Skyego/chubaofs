@@ -2332,3 +2332,48 @@ func (m *Server) associateVolWithUser(userID, volName string) error {
 	}
 	return nil
 }
+
+// set client bin file info
+func (m *Server) setClientBinFileInfoHandler(w http.ResponseWriter, r *http.Request) {
+	var (
+		err      error
+		addr     string
+		md5      string
+		interval time.Duration
+	)
+	if addr, md5, interval, err = parseRequestToSetClientInfo(r); err != nil {
+		sendErrReply(w, r, &proto.HTTPReply{Code: proto.ErrCodeParamError, Msg: err.Error()})
+		return
+	}
+	m.cluster.clientBinFileInfo.Addr = addr
+	m.cluster.clientBinFileInfo.Md5 = md5
+	if interval != time.Duration(0) {
+		m.cluster.clientBinFileInfo.Interval = interval
+	}
+	view := proto.NewClientBinFileInfoView(m.cluster.clientBinFileInfo.Addr, m.cluster.clientBinFileInfo.Md5,
+		fmt.Sprint(m.cluster.clientBinFileInfo.Interval.Seconds()))
+	sendOkReply(w, r, newSuccessHTTPReply(view))
+}
+
+func parseRequestToSetClientInfo(r *http.Request) (addr, md5 string, interval time.Duration, err error) {
+	if addr = r.FormValue(addrKey); addr == "" {
+		err = keyNotFound(addrKey)
+		return
+	}
+	if md5 = r.FormValue(md5Key); md5 == "" {
+		err = keyNotFound(md5Key)
+		return
+	}
+	if intervalStr := r.FormValue(checkIntervalKey); intervalStr != "" {
+		if interval, err = time.ParseDuration(intervalStr); err != nil {
+			return
+		}
+	}
+	return
+}
+
+func (m *Server) getClientBinFileInfoHandler(w http.ResponseWriter, r *http.Request) {
+	view := proto.NewClientBinFileInfoView(m.cluster.clientBinFileInfo.Addr, m.cluster.clientBinFileInfo.Md5,
+		fmt.Sprint(m.cluster.clientBinFileInfo.Interval.Seconds()))
+	sendOkReply(w, r, newSuccessHTTPReply(view))
+}

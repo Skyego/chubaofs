@@ -38,6 +38,8 @@ const (
 	AdminSetNodeInfo               = "/admin/setNodeInfo"
 	AdminGetNodeInfo               = "/admin/getNodeInfo"
 	AdminSetNodeState              = "/admin/setNodeState"
+	AdminGetClientBinFileInfo      = "/admin/getClientBinFileInfo"
+	AdminSetClientBinFileInfo      = "/admin/setClientBinFileInfo"
 
 	//graphql master api
 	AdminClusterAPI = "/api/cluster"
@@ -520,5 +522,19 @@ func NewVolInfo(name, owner string, createTime int64, status uint8, totalSize, u
 		Status:     status,
 		TotalSize:  totalSize,
 		UsedSize:   usedSize,
+	}
+}
+
+type ClientBinFileInfoView struct {
+	Addr     string
+	Md5      string
+	Interval string
+}
+
+func NewClientBinFileInfoView(addr, md5, interval string) *ClientBinFileInfoView {
+	return &ClientBinFileInfoView{
+		Addr:     addr,
+		Md5:      md5,
+		Interval: interval,
 	}
 }
