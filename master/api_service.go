@@ -2341,21 +2341,20 @@ func (m *Server) setClientBinFileInfoHandler(w http.ResponseWriter, r *http.Requ
 		md5      string
 		interval time.Duration
 	)
-	if addr, md5, interval, err = parseRequestToSetClientInfo(r); err != nil {
+	if addr, md5, interval, err = parseRequestToSetClientBinFileInfo(r); err != nil {
 		sendErrReply(w, r, &proto.HTTPReply{Code: proto.ErrCodeParamError, Msg: err.Error()})
 		return
 	}
-	m.cluster.clientBinFileInfo.Addr = addr
-	m.cluster.clientBinFileInfo.Md5 = md5
-	if interval != time.Duration(0) {
-		m.cluster.clientBinFileInfo.Interval = interval
+	if err = m.setClientBinFileInfo(addr, md5, interval); err != nil {
+		sendErrReply(w, r, &proto.HTTPReply{Code: proto.ErrCodeParamError, Msg: err.Error()})
+		return
 	}
 	view := proto.NewClientBinFileInfoView(m.cluster.clientBinFileInfo.Addr, m.cluster.clientBinFileInfo.Md5,
 		fmt.Sprint(m.cluster.clientBinFileInfo.Interval.Seconds()))
 	sendOkReply(w, r, newSuccessHTTPReply(view))
 }
 
-func parseRequestToSetClientInfo(r *http.Request) (addr, md5 string, interval time.Duration, err error) {
+func parseRequestToSetClientBinFileInfo(r *http.Request) (addr, md5 string, interval time.Duration, err error) {
 	if addr = r.FormValue(addrKey); addr == "" {
 		err = keyNotFound(addrKey)
 		return
@@ -2366,13 +2365,38 @@ func parseRequestToSetClientInfo(r *http.Request) (addr, md5 string, interval ti
 	}
 	if intervalStr := r.FormValue(checkIntervalKey); intervalStr != "" {
 		if interval, err = time.ParseDuration(intervalStr); err != nil {
+			err = errors.New(fmt.Sprintf("the example of correct interval format \"1h\" err:%v", err))
 			return
 		}
 	}
 	return
 }
+func (m *Server) setClientBinFileInfo(addr, md5 string, interval time.Duration) (err error) {
+	if strings.HasPrefix(addr, "http://storage.jd.local") == false {
+		err = errors.New(fmt.Sprint("wrong addr type,it should begin with \"http://storage.jd.local\""))
+		return
+	}
+	m.cluster.clientBinFileInfo.Addr = addr
+	if len(md5) != 32 {
+		err = errors.New(fmt.Sprint("wrong md5 type,the length should be 32"))
+		return
+	}
+	m.cluster.clientBinFileInfo.Md5 = md5
+	if interval == time.Duration(0) {
+		return
+	}
+	if interval < time.Hour || interval > 24*time.Hour {
+		err = errors.New(fmt.Sprint("The interval should be between 1h and 24h"))
+		return
+	}
+	m.cluster.clientBinFileInfo.Interval = interval
+	return
+}
 
 func (m *Server) getClientBinFileInfoHandler(w http.ResponseWriter, r *http.Request) {
+	if m.cluster.clientBinFileInfo.Interval < time.Hour {
+		m.cluster.clientBinFileInfo.Interval = time.Hour
+	}
 	view := proto.NewClientBinFileInfoView(m.cluster.clientBinFileInfo.Addr, m.cluster.clientBinFileInfo.Md5,
 		fmt.Sprint(m.cluster.clientBinFileInfo.Interval.Seconds()))
 	sendOkReply(w, r, newSuccessHTTPReply(view))
